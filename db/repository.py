@@ -71,3 +71,27 @@ class TimeEntryRepository:
             ORDER BY start
         """)
         return cursor.fetchall()
+
+    def get_summary_sql(self, project=None, today=False):
+        cursor = self.conn.cursor()
+
+        query = """
+            SELECT
+                project,
+                SUM(strftime('%s', end) - strftime('%s', start)) AS total_seconds
+            FROM time_entries
+            WHERE end IS NOT NULL
+        """
+        params = []
+
+        if project:
+            query += " AND project = ?"
+            params.append(project)
+
+        if today:
+            query += " AND date(start) = date('now')"
+
+        query += " GROUP BY project"
+
+        cursor.execute(query, params)
+        return cursor.fetchall()

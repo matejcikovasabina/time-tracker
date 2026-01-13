@@ -1,5 +1,4 @@
 from core.model import Project, TimeEntry
-from core.summary import summarize_by_project
 from core.tracker import TimeTracker
 from db.repository import TimeEntryRepository
 import argparse
@@ -22,6 +21,18 @@ def main():
     history_parser = subparsers.add_parser("history")
 
     summary_parser = subparsers.add_parser("summary")
+
+    summary_parser.add_argument(
+        "project",
+        nargs="?",
+        help="Project name"
+    )
+
+    summary_parser.add_argument(
+        "--today",
+        action="store_true",
+        help="Only today's entries"
+)
 
     args = parser.parse_args()
 
@@ -57,19 +68,18 @@ def main():
             print(f"{project}: start {start} - end {end}")
 
     elif args.command == "summary":
-        rows = repo.get_history()
+        rows = repo.get_summary_sql(
+            project=args.project,
+            today=args.today
+        )
 
-        for project, start, end in rows:
-            entry = TimeEntry(
-                project=Project(project),
-                start=datetime.fromisoformat(start),
-                end=datetime.fromisoformat(end)
-            )
-            tracker.entries.append(entry)
-        summary = summarize_by_project(tracker.entries)
+        if not rows:
+            print("No data for given filter.")
+            return
 
-        for project, seconds in summary.items():
+        for project, seconds in rows:
             print(f"{project}: {seconds} sec")
+
 
     else:
         parser.print_help()
