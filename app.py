@@ -1,9 +1,10 @@
 from core.model import Project, TimeEntry
 from core.tracker import TimeTracker
-
+from db.repository import TimeEntryRepository
 import argparse
-import time
+from datetime import datetime
 
+repo = TimeEntryRepository()
 tracker = TimeTracker()
 active_project = None
 
@@ -24,13 +25,25 @@ def main():
     if args.command == "start":
         active_project = Project(args.project)
         tracker.start(active_project)
+
+        active = tracker.active_entry
+        repo.save_active(active)
+
         print(f"Started tracking project '{args.project}'")
     
     elif args.command == "stop":
+        active = repo.get_active()
+        if active is None:
+            print("No active time entry")
+            return
+        
+        tracker.active_entry = active
         tracker.stop()
-        seconds = tracker.total_time_seconds(active_project)
 
-        print(f"Project: {active_project.name}")
+        repo.stop_active(active.end)
+        seconds = active.duration_seconds()
+
+        print(f"Project: {active.project.name}")
         print(f"Time spend: {seconds}")
 
     else:

@@ -1,0 +1,63 @@
+import sqlite3
+from datetime import datetime
+from typing import Optional
+
+from core.model import Project, TimeEntry
+
+DB_PATH = "tracker.db"
+
+
+class TimeEntryRepository:
+
+    def __init__(self):
+        self.conn = sqlite3.connect(DB_PATH)
+        self._create_tables()
+
+    def _create_tables(self):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS time_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project TEXT NOT NULL,
+                start TEXT NOT NULL,
+                end TEXT
+            )
+        """)
+        self.conn.commit()
+
+    def save_active(self, entry: TimeEntry):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT INTO time_entries (project, start, end)
+            VALUES (?, ?, NULL)
+        """, (entry.project.name, entry.start.isoformat()))
+        self.conn.commit()
+
+    def get_active(self) -> Optional[TimeEntry]:
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT project, start
+            FROM time_entries
+            WHERE end IS NULL
+            ORDER BY id DESC
+            LIMIT 1
+        """)
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+
+        project_name, start_str = row
+        return TimeEntry(
+            project=Project(project_name),
+            start=datetime.fromisoformat(start_str)
+        )
+
+    def stop_active(self, end_time: datetime):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE time_entries
+            SET end = ?
+            WHERE end IS NULL
+        """, (end_time.isoformat(),))
+        self.conn.commit()
