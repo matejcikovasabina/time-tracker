@@ -61,3 +61,13 @@ class TimeEntryRepository:
             WHERE end IS NULL
         """, (end_time.isoformat(),))
         self.conn.commit()
+
+    def get_history(self):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT project, start, end 
+            FROM time_entries
+            WHERE end IS NOT NULL
+            ORDER BY start
+        """)
+        return cursor.fetchall()

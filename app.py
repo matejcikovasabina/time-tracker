@@ -18,6 +18,8 @@ def main():
 
     end_parser = subparsers.add_parser("stop")
 
+    history_parser = subparsers.add_parser("history")
+
     args = parser.parse_args()
 
     global active_project
@@ -45,6 +47,11 @@ def main():
 
         print(f"Project: {active.project.name}")
         print(f"Time spend: {seconds}")
+
+    elif args.command == "history":
+        rows = repo.get_history()
+        for project, start, end in rows:
+            print(f"{project}: start {start} - end {end}")
 
     else:
         parser.print_help()
