@@ -21,7 +21,7 @@ def main():
     history_parser = subparsers.add_parser("history")
 
     history_parser.add_argument(
-        "today",
+        "--today",
         action="store_true",
         help="Only todays history"
 )
@@ -41,7 +41,7 @@ def main():
     )
 
     summary_parser.add_argument(
-        "today",
+        "--today",
         action="store_true",
         help="Only today's entries"
 )
