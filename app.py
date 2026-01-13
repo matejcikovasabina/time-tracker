@@ -1,4 +1,5 @@
 from core.model import Project, TimeEntry
+from core.summary import summarize_by_project
 from core.tracker import TimeTracker
 from db.repository import TimeEntryRepository
 import argparse
@@ -19,6 +20,8 @@ def main():
     end_parser = subparsers.add_parser("stop")
 
     history_parser = subparsers.add_parser("history")
+
+    summary_parser = subparsers.add_parser("summary")
 
     args = parser.parse_args()
 
@@ -52,6 +55,21 @@ def main():
         rows = repo.get_history()
         for project, start, end in rows:
             print(f"{project}: start {start} - end {end}")
+
+    elif args.command == "summary":
+        rows = repo.get_history()
+
+        for project, start, end in rows:
+            entry = TimeEntry(
+                project=Project(project),
+                start=datetime.fromisoformat(start),
+                end=datetime.fromisoformat(end)
+            )
+            tracker.entries.append(entry)
+        summary = summarize_by_project(tracker.entries)
+
+        for project, seconds in summary.items():
+            print(f"{project}: {seconds} sec")
 
     else:
         parser.print_help()
