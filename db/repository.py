@@ -62,14 +62,24 @@ class TimeEntryRepository:
         """, (end_time.isoformat(),))
         self.conn.commit()
 
-    def get_history(self):
+    def get_history(self, project=None, today=False):
         cursor = self.conn.cursor()
-        cursor.execute("""
+        query = """
             SELECT project, start, end 
             FROM time_entries
             WHERE end IS NOT NULL
-            ORDER BY start
-        """)
+        """
+
+        params = []
+
+        if project:
+            query += " AND project = ?"
+            params.append(project)
+        
+        if today:
+            query += " AND date(start) = date('now')"
+
+        cursor.execute(query, params)
         return cursor.fetchall()
 
     def get_summary_sql(self, project=None, today=False):

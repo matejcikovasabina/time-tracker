@@ -20,6 +20,18 @@ def main():
 
     history_parser = subparsers.add_parser("history")
 
+    history_parser.add_argument(
+        "today",
+        action="store_true",
+        help="Only todays history"
+)
+    
+    history_parser.add_argument(
+        "project",
+        nargs="?",
+        help="Project name"
+    )
+
     summary_parser = subparsers.add_parser("summary")
 
     summary_parser.add_argument(
@@ -29,7 +41,7 @@ def main():
     )
 
     summary_parser.add_argument(
-        "--today",
+        "today",
         action="store_true",
         help="Only today's entries"
 )
@@ -63,7 +75,11 @@ def main():
         print(f"Time spend: {seconds}")
 
     elif args.command == "history":
-        rows = repo.get_history()
+        rows = repo.get_history(
+            project=args.project,
+            today=args.today
+        )
+
         for project, start, end in rows:
             print(f"{project}: start {start} - end {end}")
 
