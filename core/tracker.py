@@ -1,36 +1,43 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional, List
 
 from core.model import Project, TimeEntry
+from db.repository import TimeEntryRepository
 
 
 class TimeTracker:
 
-    def __init__(self):
-        self.entries: List[TimeEntry] = []
-        self.active_entry: Optional[TimeEntry] = None
+    def __init__(self, repo: TimeEntryRepository):
+        self.repo = repo
 
     def start(self, project: Project):
-        if self.active_entry is not None:
+        if self.repo.get_active() is not None:
             raise RuntimeError("A time entry is already running")
 
         entry = TimeEntry(
+            id=None,
             project=project,
             start=datetime.now()
         )
-        self.entries.append(entry)
-        self.active_entry = entry
 
-    def stop(self):
-        if self.active_entry is None:
+        self.repo.save_active(entry)
+
+    def stop(self) -> TimeEntry:
+        active = self.repo.get_active()
+        if active is None:
             raise RuntimeError("No active time entry")
 
-        self.active_entry.end = datetime.now()
-        self.active_entry = None
+        self.repo.stop_active(datetime.now())
 
-    def total_time_seconds(self, project: Project) -> int:
-        total = 0
-        for entry in self.entries:
-            if entry.project.name == project.name and entry.end is not None:
-                total += entry.duration_seconds()
-        return total
+        finished = self.repo.get_last_finished()
+        return finished
+
+    def delete(self, entry_id: int) -> bool:
+        return self.repo.delete_entry(entry_id)
+
+
+    def history(self, project_name: Optional[str], today: bool):
+        return self.repo.get_history(project_name, today)
+
+    def summary(self, project_name: Optional[str], today: bool):
+        return self.repo.get_summary_sql(project_name, today)
