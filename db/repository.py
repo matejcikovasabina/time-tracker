@@ -65,7 +65,7 @@ class TimeEntryRepository:
     def get_history(self, project=None, today=False):
         cursor = self.conn.cursor()
         query = """
-            SELECT project, start, end 
+            SELECT id, project, start, end 
             FROM time_entries
             WHERE end IS NOT NULL
         """
@@ -105,3 +105,14 @@ class TimeEntryRepository:
 
         cursor.execute(query, params)
         return cursor.fetchall()
+
+    def delete_entry(self, entry_id: id):
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+                "DELETE FROM time_entries WHERE ID = ?",
+                (entry_id,)
+        )
+        self.conn.commit()
+
+        return cursor.rowcount > 0

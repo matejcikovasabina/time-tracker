@@ -46,6 +46,14 @@ def main():
         help="Only today's entries"
 )
 
+    delete_parser = subparsers.add_parser("delete")
+
+    delete_parser.add_argument(
+        "id",
+        type=int,
+        help="Entry id",
+    )
+
     args = parser.parse_args()
 
     global active_project
@@ -80,8 +88,8 @@ def main():
             today=args.today
         )
 
-        for project, start, end in rows:
-            print(f"{project}: start {start} - end {end}")
+        for id, project, start, end in rows:
+            print(f"{id} | {project}: start {start} - end {end}")
 
     elif args.command == "summary":
         rows = repo.get_summary_sql(
@@ -96,6 +104,13 @@ def main():
         for project, seconds in rows:
             print(f"{project}: {seconds} sec")
 
+    elif args.command == "delete":
+        delete = repo.delete_entry(args.id)
+        if delete:
+            print(f"Entry with id {args.id} deleted")
+        else:
+            print("No such entry.")
+        
 
     else:
         parser.print_help()
