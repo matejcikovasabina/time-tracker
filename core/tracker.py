@@ -40,5 +40,5 @@ class TimeTracker:
     def summary(self, project_name: Optional[str], today: bool):
         return self.repo.get_summary_sql(project_name, today)
     
-    def is_active(self) -> TimeEntry | None:
+    def get_active(self) -> TimeEntry | None:
         return self.repo.get_active()

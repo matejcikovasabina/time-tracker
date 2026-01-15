@@ -22,3 +22,8 @@ class TimeEntry:
         if self.is_running():
             raise ValueError("Time entry is still running")
         return int((self.end - self.start).total_seconds())
+    
+    def elapsed_seconds(self) -> float:
+        end_time = self.end or datetime.now()
+        return (end_time - self.start).total_seconds()
+
