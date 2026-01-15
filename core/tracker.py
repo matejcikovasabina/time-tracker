@@ -5,7 +5,7 @@ from core.model import Project, TimeEntry
 from db.repository import TimeEntryRepository
 
 class TimeTracker:
-    
+
     def __init__(self, repo: TimeEntryRepository):
         self.repo = repo
 
@@ -39,3 +39,6 @@ class TimeTracker:
 
     def summary(self, project_name: Optional[str], today: bool):
         return self.repo.get_summary_sql(project_name, today)
+    
+    def is_active(self) -> TimeEntry | None:
+        return self.repo.get_active()
