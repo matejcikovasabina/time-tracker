@@ -2,12 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-@dataclass(frozen=True)
+@dataclass
 class Project:
     id: Optional[int]
     name: str
     label: str
-
 
 @dataclass
 class TimeEntry:

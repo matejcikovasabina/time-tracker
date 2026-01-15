@@ -6,7 +6,6 @@ from core.model import Project, TimeEntry
 
 DB_PATH = "tracker.db"
 
-
 class TimeEntryRepository:
 
     def __init__(self):
@@ -19,14 +18,14 @@ class TimeEntryRepository:
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS labels (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 name TEXT UNIQUE NOT NULL
             )
         """)
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS projects (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 name TEXT UNIQUE NOT NULL,
                 label_id INTEGER NOT NULL,
                 FOREIGN KEY(label_id) REFERENCES labels(id)
@@ -35,7 +34,7 @@ class TimeEntryRepository:
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS time_entries (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 project_id INTEGER NOT NULL,
                 start TEXT NOT NULL,
                 end TEXT,
@@ -52,7 +51,7 @@ class TimeEntryRepository:
             entry.project.name,
             entry.project.label
         )
-        
+
         cursor.execute("""
             INSERT INTO time_entries (project_id, start, end)
             VALUES (?, ?, NULL)
@@ -129,7 +128,6 @@ class TimeEntryRepository:
             end=datetime.fromisoformat(end)
         )
 
-
     def stop_active(self, end_time: datetime):
         cursor = self.conn.cursor()
 
@@ -145,7 +143,6 @@ class TimeEntryRepository:
         """, (end_time.isoformat(),))
 
         self.conn.commit()
-
 
     def get_history(self, project_name: Optional[str], today: bool):
         cursor = self.conn.cursor()
@@ -174,7 +171,6 @@ class TimeEntryRepository:
         cursor.execute(query, params)
         return cursor.fetchall()
 
-
     def get_summary_sql(self, project_name: Optional[str], today: bool):
         cursor = self.conn.cursor()
 
@@ -200,7 +196,6 @@ class TimeEntryRepository:
         cursor.execute(query, params)
         return cursor.fetchall()
 
-
     def delete_entry(self, entry_id: int) -> bool:
         cursor = self.conn.cursor()
         cursor.execute(
@@ -210,7 +205,6 @@ class TimeEntryRepository:
         self.conn.commit()
         return cursor.rowcount > 0
 
-    
     def get_or_create_label(self, name: str) -> int:
         cursor = self.conn.cursor()
 
@@ -228,7 +222,6 @@ class TimeEntryRepository:
         self.conn.commit()
         return cursor.lastrowid
 
-    
     def get_or_create_project(self, name: str, label_name: str) -> int:
         cursor = self.conn.cursor()
 
