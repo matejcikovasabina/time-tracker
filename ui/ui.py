@@ -12,9 +12,11 @@ def gui_main():
 
     root = tk.Tk()
     root.title("Time Tracker")
-    root.geometry("400x250")
+    root.geometry("250x300")
 
     frame = ttk.Frame(root, padding=20)
+    frame_history = ttk.Frame(root, padding=20)
+    frame_summary = ttk.Frame(root, padding=20)
     frame.pack(expand=True)
 
     frame.columnconfigure(0, weight=1)
@@ -76,6 +78,22 @@ def gui_main():
         except RuntimeError as e:
             messagebox.showerror("Error", str(e))
 
+    def history_page():
+        frame.pack_forget()
+        frame_history.pack(expand=True)
+
+    def summary_page():
+        frame.pack_forget()
+        frame_summary.pack(expand=True)
+
+    def log_page_history():
+        frame_history.pack_forget()
+        frame.pack(expand=True)
+    
+    def log_page_summary():
+        frame_summary.pack_forget()
+        frame.pack(expand=True)
+
     def load():
         nonlocal active_entry, timer_running
 
@@ -102,7 +120,18 @@ def gui_main():
     ttk.Button(frame, text="Stop", command=on_stop)\
         .grid(row=4, column=1, pady=5)
 
-
+    ttk.Button(frame, text="History", command=history_page)\
+        .grid(row=7, column=0)
+    
+    ttk.Button(frame, text="Summary", command=summary_page)\
+        .grid(row=7, column=1)
+    
+    ttk.Button(frame_history, text="Log", command=log_page_history)\
+        .grid(row=7, column=0)
+    
+    ttk.Button(frame_summary, text="Log", command=log_page_summary)\
+        .grid(row=7, column=0)
+    
     def update_timer():
         if timer_running and active_entry is not None:
             seconds = active_entry.elapsed_seconds()
