@@ -35,10 +35,16 @@ class TimeTrackerApp(tk.Tk):
             frame.pack(fill="both", expand=True)
             frame.pack_forget()
 
-    def show_frame(self, name: str):
+    def show_frame(self, name):
         for frame in self.frames.values():
             frame.pack_forget()
-        self.frames[name].pack(fill="both", expand=True)
+
+        frame = self.frames[name]
+        frame.pack(fill="both", expand=True)
+
+        if name == "history":
+            frame.refresh()
+
 
     def load_active(self):
         active = self.tracker.get_active()
@@ -131,13 +137,60 @@ class LogFrame(ttk.Frame):
         self.label_entry.insert(0, entry.project.label)
 
 class HistoryFrame(ttk.Frame):
-    def __init__(self, app: TimeTrackerApp):
-        super().__init__(app, padding=20)
+    def __init__(self, app):
+        super().__init__(app, padding=10)
         self.app = app
 
-        ttk.Label(self, text="History (TODO)").pack(pady=10)
-        ttk.Button(self, text="Back",
-                   command=lambda: app.show_frame("log")).pack()
+        ttk.Label(self, text="History").pack(anchor="w")
+
+        columns = ("project", "label", "time")
+
+        self.tree = ttk.Treeview(
+            self,
+            columns=columns,
+            show="headings",
+            height=8
+        )
+
+        self.tree.heading("project", text="Project")
+        self.tree.heading("label", text="Label")
+        self.tree.heading("time", text="Time")
+
+        self.tree.column("project", width=75)
+        self.tree.column("label", width=75)
+        self.tree.column("time", width=80, anchor="e")
+
+        self.tree.pack(fill="both", expand=True, pady=5)
+
+        ttk.Button(
+            self,
+            text="Back",
+            command=lambda: app.show_frame("log")
+        ).pack()
+
+    def refresh(self):
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        entries = self.app.tracker.repo.get_history()
+
+        for entry in entries:
+            self.tree.insert(
+                "",
+                "end",
+                values=(
+                    entry.project.name,
+                    entry.project.label,
+                    self._format_duration(entry.duration_seconds())
+                )
+            )
+
+    @staticmethod
+    def _format_duration(seconds: int) -> str:
+        minutes, sec = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        return f"{hours:02d}:{minutes:02d}:{sec:02d}"
+
 
 class SummaryFrame(ttk.Frame):
     def __init__(self, app: TimeTrackerApp):

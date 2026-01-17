@@ -144,32 +144,53 @@ class TimeEntryRepository:
 
         self.conn.commit()
 
-    def get_history(self, project_name: Optional[str], today: bool):
+    def get_history(self) -> list[TimeEntry]:
         cursor = self.conn.cursor()
 
-        query = """
+        cursor.execute("""
             SELECT
                 t.id,
+                p.id,
                 p.name,
+                l.name,
                 t.start,
                 t.end
             FROM time_entries t
             JOIN projects p ON t.project_id = p.id
+            JOIN labels l ON p.label_id = l.id
             WHERE t.end IS NOT NULL
-        """
-        params = []
+            ORDER BY t.start DESC
+        """)
 
-        if project_name:
-            query += " AND p.name = ?"
-            params.append(project_name)
+        entries = []
 
-        if today:
-            query += " AND date(t.start, 'localtime') = date('now', 'localtime')"
+        for row in cursor.fetchall():
+            (
+                time_id,
+                project_id,
+                project_name,
+                label_name,
+                start,
+                end
+            ) = row
 
-        query += " ORDER BY t.start"
+            project = Project(
+                id=project_id,
+                name=project_name,
+                label=label_name
+            )
 
-        cursor.execute(query, params)
-        return cursor.fetchall()
+            entry = TimeEntry(
+                id=time_id,
+                project=project,
+                start=datetime.fromisoformat(start),
+                end=datetime.fromisoformat(end)
+            )
+
+            entries.append(entry)
+
+        return entries
+
 
     def get_summary_sql(self, project_name: Optional[str], today: bool):
         cursor = self.conn.cursor()
