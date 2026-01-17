@@ -1,51 +1,97 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from datetime import datetime
+
 from core.model import Project
 from core.tracker import TimeTracker
 from db.repository import TimeEntryRepository
 
-def gui_main():
-    
-    repo = TimeEntryRepository()
-    tracker = TimeTracker(repo)
+class TimeTrackerApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
 
-    root = tk.Tk()
-    root.title("Time Tracker")
-    root.geometry("250x300")
+        self.repo = TimeEntryRepository()
+        self.tracker = TimeTracker(self.repo)
 
-    frame = ttk.Frame(root, padding=20)
-    frame_history = ttk.Frame(root, padding=20)
-    frame_summary = ttk.Frame(root, padding=20)
-    frame.pack(expand=True)
+        self.active_entry = None
+        self.timer_running = False
+        self.time_var = tk.StringVar(value="0.0 s")
 
-    frame.columnconfigure(0, weight=1)
-    frame.columnconfigure(1, weight=1)
+        self.title("Time Tracker")
+        self.geometry("250x300")
 
-    
-    ttk.Label(frame, text="Project").grid(row=0, column=0, columnspan=2, pady=(0, 5))
-    project_entry = ttk.Entry(frame, width=10)
-    project_entry.grid(row=1, column=0, columnspan=2, pady=(0, 10))
+        self.frames = {}
+        self._create_frames()
+        self.show_frame("log")
 
-    ttk.Label(frame, text="Label").grid(row=2, column=0, columnspan=2, pady=(0, 5))
+        self.load_active()
+        self.update_timer()
 
-    label_entry = ttk.Entry(frame, width=10)
-    label_entry.grid(row=3, column=0, columnspan=2, pady=(0, 15))
+    def _create_frames(self):
+        self.frames["log"] = LogFrame(self)
+        self.frames["history"] = HistoryFrame(self)
+        self.frames["summary"] = SummaryFrame(self)
 
-    time_var = tk.StringVar(value="0.0 s")
+        for frame in self.frames.values():
+            frame.pack(fill="both", expand=True)
+            frame.pack_forget()
 
-    time_label = ttk.Label(
-        frame,
-        textvariable=time_var
-    )
-    time_label.grid(row=6, column=0, columnspan=2, pady=10)
+    def show_frame(self, name: str):
+        for frame in self.frames.values():
+            frame.pack_forget()
+        self.frames[name].pack(fill="both", expand=True)
 
-    timer_running = False
-    active_entry = None
+    def load_active(self):
+        active = self.tracker.get_active()
+        if active:
+            self.active_entry = active
+            self.timer_running = True
+            self.frames["log"].fill_from_entry(active)
 
-    def on_start():
-        name = project_entry.get().strip()
-        label = label_entry.get().strip()
+    def update_timer(self):
+        if self.timer_running and self.active_entry:
+            seconds = self.active_entry.elapsed_seconds()
+            self.time_var.set(f"{seconds:.1f} s")
+        else:
+            self.time_var.set("0.0 s")
+
+        self.after(100, self.update_timer)
+
+class LogFrame(ttk.Frame):
+    def __init__(self, app: TimeTrackerApp):
+        super().__init__(app, padding=20)
+        self.app = app
+
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+
+        ttk.Label(self, text="Project").grid(row=0, column=0, columnspan=2)
+        self.project_entry = ttk.Entry(self)
+        self.project_entry.grid(row=1, column=0, columnspan=2, pady=(0, 10))
+
+        ttk.Label(self, text="Label").grid(row=2, column=0, columnspan=2)
+        self.label_entry = ttk.Entry(self)
+        self.label_entry.grid(row=3, column=0, columnspan=2, pady=(0, 10))
+
+        ttk.Button(self, text="Start", command=self.start)\
+            .grid(row=4, column=0, pady=5)
+
+        ttk.Button(self, text="Stop", command=self.stop)\
+            .grid(row=4, column=1, pady=5)
+
+        ttk.Label(self, textvariable=app.time_var)\
+            .grid(row=5, column=0, columnspan=2, pady=10)
+
+        ttk.Button(self, text="History",
+                   command=lambda: app.show_frame("history"))\
+            .grid(row=6, column=0)
+
+        ttk.Button(self, text="Summary",
+                   command=lambda: app.show_frame("summary"))\
+            .grid(row=6, column=1)
+
+    def start(self):
+        name = self.project_entry.get().strip()
+        label = self.label_entry.get().strip()
 
         if not name:
             messagebox.showerror("Error", "Project name is required")
@@ -53,103 +99,59 @@ def gui_main():
 
         try:
             project = Project(id=None, name=name, label=label)
-
-            nonlocal active_entry, timer_running
-            active_entry = tracker.start(project) 
-            timer_running = True
+            self.app.active_entry = self.app.tracker.start(project)
+            self.app.timer_running = True
             messagebox.showinfo("Started", f"Started tracking '{name}'")
-            update_timer()
         except RuntimeError as e:
             messagebox.showerror("Error", str(e))
 
-
-    def on_stop():
+    def stop(self):
         try:
-            nonlocal timer_running, active_entry
-            entry = tracker.stop()
-            timer_running = False
-            active_entry = None
-            update_entries()
+            entry = self.app.tracker.stop()
+            self.app.active_entry = None
+            self.app.timer_running = False
+            self.clear()
             messagebox.showinfo(
                 "Stopped",
                 f"Project: {entry.project.name}\n"
-                f"Time spent: {entry.duration_seconds()} sec"
+                f"Time spent: {entry.duration_seconds()} s"
             )
         except RuntimeError as e:
             messagebox.showerror("Error", str(e))
 
-    def history_page():
-        frame.pack_forget()
-        frame_history.pack(expand=True)
+    def clear(self):
+        self.project_entry.delete(0, tk.END)
+        self.label_entry.delete(0, tk.END)
 
-    def summary_page():
-        frame.pack_forget()
-        frame_summary.pack(expand=True)
+    def fill_from_entry(self, entry):
+        self.project_entry.delete(0, tk.END)
+        self.project_entry.insert(0, entry.project.name)
 
-    def log_page_history():
-        frame_history.pack_forget()
-        frame.pack(expand=True)
-    
-    def log_page_summary():
-        frame_summary.pack_forget()
-        frame.pack(expand=True)
+        self.label_entry.delete(0, tk.END)
+        self.label_entry.insert(0, entry.project.label)
 
-    def load():
-        nonlocal active_entry, timer_running
+class HistoryFrame(ttk.Frame):
+    def __init__(self, app: TimeTrackerApp):
+        super().__init__(app, padding=20)
+        self.app = app
 
-        active = tracker.get_active()
-        if active is None:
-            time_var.set("0.0 s")
-            return
+        ttk.Label(self, text="History (TODO)").pack(pady=10)
+        ttk.Button(self, text="Back",
+                   command=lambda: app.show_frame("log")).pack()
 
-        active_entry = active
-        timer_running = True
+class SummaryFrame(ttk.Frame):
+    def __init__(self, app: TimeTrackerApp):
+        super().__init__(app, padding=20)
+        self.app = app
 
-        project_entry.delete(0, tk.END)
-        project_entry.insert(0, active.project.name)
-
-        label_entry.delete(0, tk.END)
-        label_entry.insert(0, active.project.label)
-
-        update_timer()
+        ttk.Label(self, text="Summary (TODO)").pack(pady=10)
+        ttk.Button(self, text="Back",
+                   command=lambda: app.show_frame("log")).pack()
 
 
-    ttk.Button(frame, text="Start", command=on_start)\
-        .grid(row=4, column=0, pady=5)
-
-    ttk.Button(frame, text="Stop", command=on_stop)\
-        .grid(row=4, column=1, pady=5)
-
-    ttk.Button(frame, text="History", command=history_page)\
-        .grid(row=7, column=0)
-    
-    ttk.Button(frame, text="Summary", command=summary_page)\
-        .grid(row=7, column=1)
-    
-    ttk.Button(frame_history, text="Log", command=log_page_history)\
-        .grid(row=7, column=0)
-    
-    ttk.Button(frame_summary, text="Log", command=log_page_summary)\
-        .grid(row=7, column=0)
-    
-    def update_timer():
-        if timer_running and active_entry is not None:
-            seconds = active_entry.elapsed_seconds()
-            time_var.set(f"{seconds:.1f} s")
-            print("now:", datetime.now())
-            print("start:", active_entry.start)
-
-
-        root.after(100, update_timer)
-
-    def update_entries():
-        project_entry.delete(0, tk.END)
-        label_entry.delete(0, tk.END)
-
-        time_var.set("0.0 s")
-
-    load()
-    root.mainloop()
+def gui_main():
+    app = TimeTrackerApp()
+    app.mainloop()
 
 
 if __name__ == "__main__":
