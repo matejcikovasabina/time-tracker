@@ -141,7 +141,7 @@ class HistoryFrame(ttk.Frame):
         super().__init__(app, padding=10)
         self.app = app
 
-        ttk.Label(self, text="History").pack(anchor="w")
+        ttk.Label(self, text="History").pack(pady=10)
 
         columns = ("project", "label", "time")
 
@@ -191,17 +191,95 @@ class HistoryFrame(ttk.Frame):
         hours, minutes = divmod(minutes, 60)
         return f"{hours:02d}:{minutes:02d}:{sec:02d}"
 
-
 class SummaryFrame(ttk.Frame):
     def __init__(self, app: TimeTrackerApp):
         super().__init__(app, padding=20)
         self.app = app
 
-        ttk.Label(self, text="Summary (TODO)").pack(pady=10)
-        ttk.Button(self, text="Back",
-                   command=lambda: app.show_frame("log")).pack()
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+
+        ttk.Label(self, text="Summary").grid(
+            row=0, column=0, columnspan=2, pady=(0, 10)
+        )
+
+        ttk.Label(self, text="Project").grid(
+            row=1, column=0, columnspan=2
+        )
+
+        self.project_entry = ttk.Entry(self)
+        self.project_entry.grid(
+            row=2, column=0, columnspan=2, pady=(0, 10)
+        )
+
+        ttk.Button(
+            self,
+            text="Search",
+            command=self.search
+        ).grid(row=3, column=0, columnspan=2, pady=5)
+
+        columns = ("project", "label", "time")
+
+        self.tree = ttk.Treeview(
+            self,
+            columns=columns,
+            show="headings",
+            height=8
+        )
+
+        self.tree.heading("project", text="Project")
+        self.tree.heading("label", text="Label")
+        self.tree.heading("time", text="Time")
+
+        self.tree.column("project", width=60)
+        self.tree.column("label", width=60)
+        self.tree.column("time", width=60, anchor="e")
+
+        self.tree.grid(
+            row=4, column=0, columnspan=2, pady=10, sticky="nsew"
+        )
+
+        ttk.Button(
+            self,
+            text="Back",
+            command=lambda: app.show_frame("log")
+        ).grid(row=5, column=0, columnspan=2, pady=5)
+
+    def search(self):
+        name = self.project_entry.get().strip()
+
+        if not name:
+            messagebox.showerror("Error", "Project name is required")
+            return
+
+        self.refresh(name)
+
+    def refresh(self, project_name: str):
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        summaries = self.app.tracker.repo.get_summary_sql(project_name)
+
+        for s in summaries:
+            self.tree.insert(
+                "",
+                "end",
+                values=(
+                    s.project_name,
+                    s.label_name,
+                    self._format_duration(s.total_seconds)
+                )
+            )
 
 
+    @staticmethod
+    def _format_duration(seconds: int) -> str:
+        minutes, sec = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        return f"{hours:02d}:{minutes:02d}:{sec:02d}"
+
+
+    
 def gui_main():
     app = TimeTrackerApp()
     app.mainloop()

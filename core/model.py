@@ -3,6 +3,12 @@ from datetime import datetime
 from typing import Optional
 
 @dataclass
+class ProjectSummary:
+    project_name: str
+    label_name: str
+    total_seconds: int
+    
+@dataclass
 class Project:
     id: Optional[int]
     name: str

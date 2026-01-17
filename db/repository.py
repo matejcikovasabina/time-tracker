@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from core.model import Project, TimeEntry
+from core.model import Project, TimeEntry, ProjectSummary
 
 DB_PATH = "tracker.db"
 
@@ -192,17 +192,25 @@ class TimeEntryRepository:
         return entries
 
 
-    def get_summary_sql(self, project_name: Optional[str], today: bool):
+    def get_summary_sql(
+        self,
+        project_name: Optional[str] = None,
+        today: bool = False
+    ) -> list[ProjectSummary]:
+
         cursor = self.conn.cursor()
 
         query = """
             SELECT
                 p.name,
+                l.name,
                 SUM(strftime('%s', t.end) - strftime('%s', t.start)) AS total_seconds
             FROM time_entries t
             JOIN projects p ON t.project_id = p.id
+            JOIN labels l ON p.label_id = l.id
             WHERE t.end IS NOT NULL
         """
+
         params = []
 
         if project_name:
@@ -212,10 +220,23 @@ class TimeEntryRepository:
         if today:
             query += " AND date(t.start, 'localtime') = date('now', 'localtime')"
 
-        query += " GROUP BY p.id, p.name"
+        query += " GROUP BY p.id, p.name, l.name"
+        query += " ORDER BY total_seconds DESC"
 
         cursor.execute(query, params)
-        return cursor.fetchall()
+
+        results = []
+        for project, label, total_seconds in cursor.fetchall():
+            results.append(
+                ProjectSummary(
+                    project_name=project,
+                    label_name=label,
+                    total_seconds=int(total_seconds)
+                )
+            )
+
+        return results
+
 
     def delete_entry(self, entry_id: int) -> bool:
         cursor = self.conn.cursor()
