@@ -17,7 +17,7 @@ class TimeTrackerApp(tk.Tk):
         self.time_var = tk.StringVar(value="0.0 s")
 
         self.title("Time Tracker")
-        self.geometry("250x300")
+        self.geometry("250x270")
 
         self.frames = {}
         self._create_frames()
