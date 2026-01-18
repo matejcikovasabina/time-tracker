@@ -9,6 +9,32 @@ class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
 
+        style = ttk.Style(self)
+        style.theme_use("default")
+
+        style.configure(
+            "App.TFrame",
+            background="#edcedd"
+        )
+
+        style.configure(
+            "App.TLabel",
+            background="#edcedd",
+            foreground="black"
+        )
+
+        style.configure(
+            "App.TButton",
+            background="white",
+            foreground="black",
+            padding=6
+        )
+
+        style.map(
+            "App.TButton",
+            background=[("active", "#de9bbb")]
+        )
+
         self.repo = TimeEntryRepository()
         self.tracker = TimeTracker(self.repo)
 
@@ -64,35 +90,35 @@ class TimeTrackerApp(tk.Tk):
 
 class LogFrame(ttk.Frame):
     def __init__(self, app: TimeTrackerApp):
-        super().__init__(app, padding=20)
+        super().__init__(app, padding=20,style="App.TFrame")
         self.app = app
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
 
-        ttk.Label(self, text="Project").grid(row=0, column=0, columnspan=2)
+        ttk.Label(self, text="Project", style="App.TLabel").grid(row=0, column=0, columnspan=2)
         self.project_entry = ttk.Entry(self)
         self.project_entry.grid(row=1, column=0, columnspan=2, pady=(0, 10))
 
-        ttk.Label(self, text="Label").grid(row=2, column=0, columnspan=2)
+        ttk.Label(self, text="Label", style="App.TLabel").grid(row=2, column=0, columnspan=2)
         self.label_entry = ttk.Entry(self)
         self.label_entry.grid(row=3, column=0, columnspan=2, pady=(0, 10))
 
-        ttk.Button(self, text="Start", command=self.start)\
+        ttk.Button(self, text="Start", command=self.start, style="App.TButton")\
             .grid(row=4, column=0, pady=5)
 
-        ttk.Button(self, text="Stop", command=self.stop)\
+        ttk.Button(self, text="Stop", command=self.stop, style="App.TButton")\
             .grid(row=4, column=1, pady=5)
 
-        ttk.Label(self, textvariable=app.time_var)\
+        ttk.Label(self, textvariable=app.time_var, style="App.TLabel")\
             .grid(row=5, column=0, columnspan=2, pady=10)
 
         ttk.Button(self, text="History",
-                   command=lambda: app.show_frame("history"))\
+                   command=lambda: app.show_frame("history"), style="App.TButton")\
             .grid(row=6, column=0)
 
         ttk.Button(self, text="Summary",
-                   command=lambda: app.show_frame("summary"))\
+                   command=lambda: app.show_frame("summary"), style="App.TButton")\
             .grid(row=6, column=1)
 
     def start(self):
@@ -138,10 +164,10 @@ class LogFrame(ttk.Frame):
 
 class HistoryFrame(ttk.Frame):
     def __init__(self, app):
-        super().__init__(app, padding=10)
+        super().__init__(app, padding=10, style="App.TFrame")
         self.app = app
 
-        ttk.Label(self, text="History").pack(pady=10)
+        ttk.Label(self, text="History", style="App.TLabel").pack(pady=10)
 
         columns = ("project", "label", "time")
 
@@ -165,7 +191,7 @@ class HistoryFrame(ttk.Frame):
         ttk.Button(
             self,
             text="Back",
-            command=lambda: app.show_frame("log")
+            command=lambda: app.show_frame("log"), style="App.TButton"
         ).pack()
 
     def refresh(self):
@@ -193,17 +219,17 @@ class HistoryFrame(ttk.Frame):
 
 class SummaryFrame(ttk.Frame):
     def __init__(self, app: TimeTrackerApp):
-        super().__init__(app, padding=20)
+        super().__init__(app, padding=20, style="App.TFrame")
         self.app = app
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
 
-        ttk.Label(self, text="Summary").grid(
+        ttk.Label(self, text="Summary", style="App.TLabel").grid(
             row=0, column=0, columnspan=2, pady=(0, 10)
         )
 
-        ttk.Label(self, text="Project").grid(
+        ttk.Label(self, text="Project", style="App.TLabel").grid(
             row=1, column=0, columnspan=2
         )
 
@@ -215,7 +241,8 @@ class SummaryFrame(ttk.Frame):
         ttk.Button(
             self,
             text="Search",
-            command=self.search
+            command=self.search, 
+            style="App.TButton"
         ).grid(row=3, column=0, columnspan=2, pady=5)
 
         columns = ("project", "label", "time")
@@ -242,7 +269,8 @@ class SummaryFrame(ttk.Frame):
         ttk.Button(
             self,
             text="Back",
-            command=lambda: app.show_frame("log")
+            command=lambda: app.show_frame("log"),
+            style="App.TButton"
         ).grid(row=5, column=0, columnspan=2, pady=5)
 
     def search(self):
