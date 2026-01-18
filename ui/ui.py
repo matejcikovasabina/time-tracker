@@ -224,7 +224,7 @@ class SummaryFrame(ttk.Frame):
             self,
             columns=columns,
             show="headings",
-            height=8
+            height=1
         )
 
         self.tree.heading("project", text="Project")
