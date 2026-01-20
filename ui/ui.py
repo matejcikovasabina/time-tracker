@@ -233,9 +233,18 @@ class SummaryFrame(ttk.Frame):
             row=1, column=0, columnspan=2
         )
 
+        ttk.Label(self,text="Label", style="App.TLabel").grid(
+            row=3, column=0, columnspan=2
+        )
+
         self.project_entry = ttk.Entry(self)
         self.project_entry.grid(
             row=2, column=0, columnspan=2, pady=(0, 10)
+        )
+
+        self.label_entry = ttk.Entry(self)
+        self.label_entry.grid(
+            row=4, column=0, columnspan=2, pady=(0, 10)
         )
 
         ttk.Button(
@@ -243,7 +252,7 @@ class SummaryFrame(ttk.Frame):
             text="Search",
             command=self.search, 
             style="App.TButton"
-        ).grid(row=3, column=0, columnspan=2, pady=5)
+        ).grid(row=5, column=0, columnspan=2, pady=5)
 
         columns = ("project", "label", "time")
 
@@ -263,7 +272,7 @@ class SummaryFrame(ttk.Frame):
         self.tree.column("time", width=60, anchor="e")
 
         self.tree.grid(
-            row=4, column=0, columnspan=2, pady=10, sticky="nsew"
+            row=6, column=0, columnspan=2, pady=10, sticky="nsew"
         )
 
         ttk.Button(
@@ -271,7 +280,7 @@ class SummaryFrame(ttk.Frame):
             text="Back",
             command=lambda: app.show_frame("log"),
             style="App.TButton"
-        ).grid(row=5, column=0, columnspan=2, pady=5)
+        ).grid(row=7, column=0, columnspan=2, pady=5)
 
     def search(self):
         name = self.project_entry.get().strip()
