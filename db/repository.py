@@ -191,6 +191,7 @@ class TimeEntryRepository:
 
         return entries
 
+
     def get_summary_sql(
         self,
         project_name: Optional[str] = None,
@@ -225,17 +226,18 @@ class TimeEntryRepository:
 
         cursor.execute(query, params)
 
-        row = cursor.fetchone()
+        results = []
+        for project, label, total_seconds in cursor.fetchall():
+            results.append(
+                ProjectSummary(
+                    project_name=project,
+                    label_name=label,
+                    total_seconds=int(total_seconds)
+                )
+            )
 
-        if row is None:
-            return None
+        return results
 
-        project, label, total_seconds = row
-        return ProjectSummary(
-            project_name=project,
-            label_name=label,
-            total_seconds=int(total_seconds)
-        )
 
     def delete_entry(self, entry_id: int) -> bool:
         cursor = self.conn.cursor()

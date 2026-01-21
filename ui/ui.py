@@ -56,6 +56,7 @@ class TimeTrackerApp(tk.Tk):
         self.frames["log"] = LogFrame(self)
         self.frames["history"] = HistoryFrame(self)
         self.frames["summary"] = SummaryFrame(self)
+        self.frames["overview"] = OverviewFrame(self)
 
         for frame in self.frames.values():
             frame.pack(fill="both", expand=True)
@@ -120,6 +121,9 @@ class LogFrame(ttk.Frame):
         ttk.Button(self, text="Summary",
                    command=lambda: app.show_frame("summary"), style="App.TButton")\
             .grid(row=6, column=1)
+        
+        ttk.Button(self, text="Overview", command=lambda: app.show_frame("overview"),style="App.TButton")\
+            .grid(row=7)
 
     def start(self):
         name = self.project_entry.get().strip()
@@ -296,25 +300,26 @@ class SummaryFrame(ttk.Frame):
         self.refresh(name, label)
 
     def refresh(self, project_name: str, label_name: str):
+
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        summary = self.app.tracker.repo.get_summary_sql(project_name, label_name)
+        summaries = self.app.tracker.repo.get_summary_sql(project_name, label_name)
 
-        if summary == None:
+        if not summaries:
             messagebox.showerror("Error", "No such entry")
             return
-        
-        self.tree.insert(
-            "",
-            "end",
-            values=(
-                summary.project_name,
-                summary.label_name,
-                self._format_duration(summary.total_seconds)
-            )
-        )
 
+        for summary in summaries:
+            self.tree.insert(
+                "",
+                "end",
+                values=(
+                    summary.project_name,
+                    summary.label_name,
+                    self._format_duration(summary.total_seconds)
+                )
+            )
 
     @staticmethod
     def _format_duration(seconds: int) -> str:
@@ -322,7 +327,90 @@ class SummaryFrame(ttk.Frame):
         hours, minutes = divmod(minutes, 60)
         return f"{hours:02d}:{minutes:02d}:{sec:02d}"
 
+class OverviewFrame(ttk.Frame):
+    def __init__(self, app: TimeTrackerApp):
+        super().__init__(app, padding=20, style="App.TFrame")
+        self.app = app
 
+        self.tree = ttk.Treeview(
+            self,
+            columns=("time",),
+            show="tree headings"
+        )
+
+        self.tree.heading("#0", text="Label / Project")
+        self.tree.heading("time", text="Time")
+
+        self.tree.column("#0", width=60, anchor="w")
+        self.tree.column("time", width=80, anchor="e")
+
+        self.tree.grid(
+            row=6, column=0, columnspan=2,
+            pady=10, sticky="nsew"
+        )
+
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(6, weight=1)
+
+        ttk.Button(
+            self,
+            text="Back",
+            command=lambda: app.show_frame("log"),
+            style="App.TButton"
+        ).grid(row=7, column=0, columnspan=2, pady=5)
+
+        self.fill_table()
+
+    def fill_table(self):
+        self.tree.delete(*self.tree.get_children())
+
+        summaries = self.app.tracker.repo.get_summary_sql()
+
+        if not summaries:
+            return
+
+        labels = {}
+
+        for summary in summaries:
+
+            label = summary.label_name
+            project = summary.project_name
+            seconds = summary.total_seconds
+
+            if label not in labels:
+                label_id = self.tree.insert(
+                    "",
+                    "end",
+                    text=label,
+                    values=(self._format_duration(0),),
+                    open=False
+                )
+                labels[label] = {
+                    "id": label_id,
+                    "total": 0
+                }
+
+            self.tree.insert(
+                labels[label]["id"],
+                "end",
+                text=project,
+                values=(self._format_duration(seconds),)
+            )
+
+            labels[label]["total"] += seconds
+
+        for label, info in labels.items():
+            self.tree.item(
+                info["id"],
+                values=(self._format_duration(info["total"]),)
+            )
+
+    @staticmethod
+    def _format_duration(seconds: int) -> str:
+        minutes, sec = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        return f"{hours:02d}:{minutes:02d}:{sec:02d}"
     
 def gui_main():
     app = TimeTrackerApp()
