@@ -9,7 +9,7 @@ class TimeTracker:
     def __init__(self, repo: TimeEntryRepository):
         self.repo = repo
 
-    def start(self, project: Project):
+    def start(self, project: Project) -> TimeEntry:
         if self.repo.get_active() is not None:
             raise RuntimeError("A time entry is already running")
 
@@ -20,6 +20,7 @@ class TimeTracker:
         )
 
         self.repo.save_active(entry)
+        return entry
 
     def stop(self) -> TimeEntry:
         active = self.repo.get_active()
