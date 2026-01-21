@@ -351,7 +351,7 @@ class OverviewFrame(ttk.Frame):
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
-        self.rowconfigure(6, weight=1)
+        self.rowconfigure(5, weight=1)
 
         ttk.Button(
             self,
