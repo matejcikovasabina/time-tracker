@@ -191,12 +191,11 @@ class TimeEntryRepository:
 
         return entries
 
-
     def get_summary_sql(
         self,
         project_name: Optional[str] = None,
-        today: bool = False
-    ) -> list[ProjectSummary]:
+        label_name: Optional[str] = None
+    ) -> ProjectSummary:
 
         cursor = self.conn.cursor()
 
@@ -217,26 +216,26 @@ class TimeEntryRepository:
             query += " AND p.name = ?"
             params.append(project_name)
 
-        if today:
-            query += " AND date(t.start, 'localtime') = date('now', 'localtime')"
+        if label_name:
+            query += " AND l.name = ?"
+            params.append(label_name)
 
         query += " GROUP BY p.id, p.name, l.name"
         query += " ORDER BY total_seconds DESC"
 
         cursor.execute(query, params)
 
-        results = []
-        for project, label, total_seconds in cursor.fetchall():
-            results.append(
-                ProjectSummary(
-                    project_name=project,
-                    label_name=label,
-                    total_seconds=int(total_seconds)
-                )
-            )
+        row = cursor.fetchone()
 
-        return results
+        if row is None:
+            return None
 
+        project, label, total_seconds = row
+        return ProjectSummary(
+            project_name=project,
+            label_name=label,
+            total_seconds=int(total_seconds)
+        )
 
     def delete_entry(self, entry_id: int) -> bool:
         cursor = self.conn.cursor()

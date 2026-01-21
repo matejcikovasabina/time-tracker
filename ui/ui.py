@@ -43,7 +43,7 @@ class TimeTrackerApp(tk.Tk):
         self.time_var = tk.StringVar(value="0.0 s")
 
         self.title("Time Tracker")
-        self.geometry("250x270")
+        self.geometry("250x300")
 
         self.frames = {}
         self._create_frames()
@@ -284,29 +284,36 @@ class SummaryFrame(ttk.Frame):
 
     def search(self):
         name = self.project_entry.get().strip()
+        label = self.label_entry.get().strip()
 
         if not name:
             messagebox.showerror("Error", "Project name is required")
             return
+    
+        if not label:
+            messagebox.showerror("Error", "Label name is required")
 
-        self.refresh(name)
+        self.refresh(name, label)
 
-    def refresh(self, project_name: str):
+    def refresh(self, project_name: str, label_name: str):
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        summaries = self.app.tracker.repo.get_summary_sql(project_name)
+        summary = self.app.tracker.repo.get_summary_sql(project_name, label_name)
 
-        for s in summaries:
-            self.tree.insert(
-                "",
-                "end",
-                values=(
-                    s.project_name,
-                    s.label_name,
-                    self._format_duration(s.total_seconds)
-                )
+        if summary == None:
+            messagebox.showerror("Error", "No such entry")
+            return
+        
+        self.tree.insert(
+            "",
+            "end",
+            values=(
+                summary.project_name,
+                summary.label_name,
+                self._format_duration(summary.total_seconds)
             )
+        )
 
 
     @staticmethod
