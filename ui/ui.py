@@ -123,7 +123,7 @@ class LogFrame(ttk.Frame):
             .grid(row=6, column=1)
         
         ttk.Button(self, text="Overview", command=lambda: app.show_frame("overview"),style="App.TButton")\
-            .grid(row=7)
+            .grid(row=8, column=0, columnspan=2, pady=10)
 
     def start(self):
         name = self.project_entry.get().strip()
@@ -171,7 +171,7 @@ class HistoryFrame(ttk.Frame):
         super().__init__(app, padding=10, style="App.TFrame")
         self.app = app
 
-        ttk.Label(self, text="History", style="App.TLabel").pack(pady=10)
+        ttk.Label(self, text="History", style="App.TLabel").pack(pady=5)
 
         columns = ("project", "label", "time")
 
@@ -346,7 +346,7 @@ class OverviewFrame(ttk.Frame):
 
         self.tree.grid(
             row=6, column=0, columnspan=2,
-            pady=10, sticky="nsew"
+            pady=5, sticky="nsew"
         )
 
         self.columnconfigure(0, weight=1)
