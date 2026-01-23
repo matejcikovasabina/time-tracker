@@ -6,6 +6,13 @@ from core.tracker import TimeTracker
 from db.repository import TimeEntryRepository
 from utils.time_format import format_duration
 
+class Frames:
+    LOG = "log"
+    HISTORY = "history"
+    SUMMARY = "summary"
+    OVERVIEW = "overview"
+
+
 class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -15,7 +22,7 @@ class TimeTrackerApp(tk.Tk):
         self._setup_window()
         self._setup_frames()
 
-        self.show_frame("log")
+        self.show_frame(Frames.LOG)
         self.load_active()
         self.update_timer()
     
@@ -76,9 +83,8 @@ class TimeTrackerApp(tk.Tk):
         frame = self.frames[name]
         frame.pack(fill="both", expand=True)
 
-        if (name == "history") or (name == "overview"):
+        if name in (Frames.HISTORY, Frames.OVERVIEW):
             frame.refresh()
-
 
     def load_active(self):
         active = self.tracker.get_active()
@@ -88,13 +94,21 @@ class TimeTrackerApp(tk.Tk):
             self.frames["log"].fill_from_entry(active)
 
     def update_timer(self):
-        if self.timer_running and self.active_entry:
-            seconds = self.active_entry.elapsed_seconds()
-            self.time_var.set(f"{seconds:.1f} s")
-        else:
-            self.time_var.set("0.0 s")
+        if not self.timer_running or not self.active_entry:
+            return
 
-        self.after(100, self.update_timer)
+        seconds = self.active_entry.elapsed_seconds()
+        self.time_var.set(format_duration(seconds))
+        self.after(500, self.update_timer)
+
+    def start_timer(self):
+        if not self.timer_running:
+            self.timer_running = True
+            self.update_timer()
+
+    def stop_timer(self):
+        self.timer_running = False
+        self.time_var.set("00:00:00")
 
 class LogFrame(ttk.Frame):
     def __init__(self, app: TimeTrackerApp):
@@ -122,31 +136,28 @@ class LogFrame(ttk.Frame):
             .grid(row=5, column=0, columnspan=2, pady=10)
 
         ttk.Button(self, text="History",
-                   command=lambda: app.show_frame("history"), style="App.TButton")\
+                   command=lambda: app.show_frame(Frames.HISTORY), style="App.TButton")\
             .grid(row=6, column=0)
 
         ttk.Button(self, text="Summary",
-                   command=lambda: app.show_frame("summary"), style="App.TButton")\
+                   command=lambda: app.show_frame(Frames.SUMMARY), style="App.TButton")\
             .grid(row=6, column=1)
         
-        ttk.Button(self, text="Overview", command=lambda: app.show_frame("overview"),style="App.TButton")\
+        ttk.Button(self, text="Overview", command=lambda: app.show_frame(Frames.OVERVIEW),style="App.TButton")\
             .grid(row=8, column=0, columnspan=2, pady=10)
 
     def start(self):
         name = self.project_entry.get().strip()
         label = self.label_entry.get().strip()
 
-        if not name:
-            messagebox.showerror("Error", "Project name is required")
-            return
-
         try:
             project = Project(id=None, name=name, label=label)
             self.app.active_entry = self.app.tracker.start(project)
             self.app.timer_running = True
             messagebox.showinfo("Started", f"Started tracking '{name}'")
-        except RuntimeError as e:
+        except (ValueError, RuntimeError) as e:
             messagebox.showerror("Error", str(e))
+
 
     def stop(self):
         try:
@@ -202,7 +213,7 @@ class HistoryFrame(ttk.Frame):
         ttk.Button(
             self,
             text="Back",
-            command=lambda: app.show_frame("log"), style="App.TButton"
+            command=lambda: app.show_frame(Frames.LOG), style="App.TButton"
         ).pack()
 
         self.tree.bind("<Button-2>", self.on_right_click)   # macOS
@@ -310,29 +321,26 @@ class SummaryFrame(ttk.Frame):
         ttk.Button(
             self,
             text="Back",
-            command=lambda: app.show_frame("log"),
+            command=lambda: app.show_frame(Frames.LOG),
             style="App.TButton"
         ).grid(row=7, column=0, columnspan=2, pady=5)
 
     def search(self):
-        name = self.project_entry.get().strip()
-        label = self.label_entry.get().strip()
+        try:
+            self.refresh(
+                self.project_entry.get().strip(),
+                self.label_entry.get().strip()
+            )
+        except ValueError as e:
+            messagebox.showerror("Error", str(e))
 
-        if not name:
-            messagebox.showerror("Error", "Project name is required")
-            return
-    
-        if not label:
-            messagebox.showerror("Error", "Label name is required")
-
-        self.refresh(name, label)
 
     def refresh(self, project_name: str, label_name: str):
 
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        summaries = self.app.tracker.summary(project_name, label_name)
+        summaries = self.app.tracker.get_project_summary(project_name, label_name)
 
         if not summaries:
             messagebox.showerror("Error", "No such entry")
@@ -378,7 +386,7 @@ class OverviewFrame(ttk.Frame):
         ttk.Button(
             self,
             text="Back",
-            command=lambda: app.show_frame("log"),
+            command=lambda: app.show_frame(Frames.LOG),
             style="App.TButton"
         ).grid(row=7, column=0, columnspan=2, pady=5)
 
@@ -390,7 +398,7 @@ class OverviewFrame(ttk.Frame):
     def fill_table(self):
         self.tree.delete(*self.tree.get_children())
 
-        summaries = self.app.tracker.summary()
+        summaries = self.app.tracker.get_overview_summary()
 
         if not summaries:
             return
