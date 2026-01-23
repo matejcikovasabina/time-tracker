@@ -190,7 +190,7 @@ class HistoryFrame(ttk.Frame):
         self.tree.column("label", width=75)
         self.tree.column("time", width=80, anchor="e")
 
-        self.tree.pack(fill="both", expand=True, pady=5)
+        self.tree.pack(fill="both", expand=True, pady=10)
 
         ttk.Button(
             self,
@@ -391,7 +391,7 @@ class OverviewFrame(ttk.Frame):
 
     def refresh(self):
         self.fill_table()
-        
+
     def fill_table(self):
         self.tree.delete(*self.tree.get_children())
 
