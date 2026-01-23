@@ -35,11 +35,11 @@ class TimeTracker:
     def delete(self, entry_id: int) -> bool:
         return self.repo.delete_entry(entry_id)
 
-    def history(self, project_name: Optional[str], today: bool):
-        return self.repo.get_history(project_name, today)
+    def history(self):
+        return self.repo.get_history()
 
-    def summary(self, project_name: Optional[str], today: bool):
-        return self.repo.get_summary_sql(project_name, today)
+    def summary(self, project_name=None, label_name=None):
+        return self.repo.get_summary_sql(project_name, label_name)
     
     def get_active(self) -> TimeEntry | None:
         return self.repo.get_active()

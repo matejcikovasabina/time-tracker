@@ -4,11 +4,22 @@ from tkinter import ttk, messagebox
 from core.model import Project
 from core.tracker import TimeTracker
 from db.repository import TimeEntryRepository
+from utils.time_format import format_duration
 
 class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
+        
+        self._setup_style()
+        self._setup_state()
+        self._setup_window()
+        self._setup_frames()
 
+        self.show_frame("log")
+        self.load_active()
+        self.update_timer()
+    
+    def _setup_style(self):
         style = ttk.Style(self)
         style.theme_use("default")
 
@@ -35,6 +46,7 @@ class TimeTrackerApp(tk.Tk):
             background=[("active", "#de9bbb")]
         )
 
+    def _setup_state(self):
         self.repo = TimeEntryRepository()
         self.tracker = TimeTracker(self.repo)
 
@@ -42,17 +54,12 @@ class TimeTrackerApp(tk.Tk):
         self.timer_running = False
         self.time_var = tk.StringVar(value="0.0 s")
 
+    def _setup_window(self):
         self.title("Time Tracker")
         self.geometry("250x300")
 
+    def _setup_frames(self):
         self.frames = {}
-        self._create_frames()
-        self.show_frame("log")
-
-        self.load_active()
-        self.update_timer()
-
-    def _create_frames(self):
         self.frames["log"] = LogFrame(self)
         self.frames["history"] = HistoryFrame(self)
         self.frames["summary"] = SummaryFrame(self)
@@ -217,7 +224,7 @@ class HistoryFrame(ttk.Frame):
         if not answer:
             return
 
-        ok = self.app.tracker.repo.delete_entry(entry_id)
+        ok = self.app.tracker.delete(entry_id)
 
         if ok:
             self.refresh()
@@ -228,7 +235,7 @@ class HistoryFrame(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        entries = self.app.tracker.repo.get_history()
+        entries = self.app.tracker.history()
 
         for entry in entries:
             self.tree.insert(
@@ -238,15 +245,9 @@ class HistoryFrame(ttk.Frame):
                 values=(
                     entry.project.name,
                     entry.project.label,
-                    self._format_duration(entry.duration_seconds())
+                    format_duration(entry.duration_seconds())
                 )
             )
-
-    @staticmethod
-    def _format_duration(seconds: int) -> str:
-        minutes, sec = divmod(seconds, 60)
-        hours, minutes = divmod(minutes, 60)
-        return f"{hours:02d}:{minutes:02d}:{sec:02d}"
 
 class SummaryFrame(ttk.Frame):
     def __init__(self, app: TimeTrackerApp):
@@ -331,7 +332,7 @@ class SummaryFrame(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        summaries = self.app.tracker.repo.get_summary_sql(project_name, label_name)
+        summaries = self.app.tracker.summary(project_name, label_name)
 
         if not summaries:
             messagebox.showerror("Error", "No such entry")
@@ -344,15 +345,9 @@ class SummaryFrame(ttk.Frame):
                 values=(
                     summary.project_name,
                     summary.label_name,
-                    self._format_duration(summary.total_seconds)
+                    format_duration(summary.total_seconds)
                 )
             )
-
-    @staticmethod
-    def _format_duration(seconds: int) -> str:
-        minutes, sec = divmod(seconds, 60)
-        hours, minutes = divmod(minutes, 60)
-        return f"{hours:02d}:{minutes:02d}:{sec:02d}"
 
 class OverviewFrame(ttk.Frame):
     def __init__(self, app: TimeTrackerApp):
@@ -395,7 +390,7 @@ class OverviewFrame(ttk.Frame):
     def fill_table(self):
         self.tree.delete(*self.tree.get_children())
 
-        summaries = self.app.tracker.repo.get_summary_sql()
+        summaries = self.app.tracker.summary()
 
         if not summaries:
             return
@@ -413,7 +408,7 @@ class OverviewFrame(ttk.Frame):
                     "",
                     "end",
                     text=label,
-                    values=(self._format_duration(0),),
+                    values=(format_duration(0),),
                     open=False
                 )
                 labels[label] = {
@@ -425,7 +420,7 @@ class OverviewFrame(ttk.Frame):
                 labels[label]["id"],
                 "end",
                 text=project,
-                values=(self._format_duration(seconds),)
+                values=(format_duration(seconds),)
             )
 
             labels[label]["total"] += seconds
@@ -433,14 +428,8 @@ class OverviewFrame(ttk.Frame):
         for label, info in labels.items():
             self.tree.item(
                 info["id"],
-                values=(self._format_duration(info["total"]),)
+                values=(format_duration(info["total"]),)
             )
-
-    @staticmethod
-    def _format_duration(seconds: int) -> str:
-        minutes, sec = divmod(seconds, 60)
-        hours, minutes = divmod(minutes, 60)
-        return f"{hours:02d}:{minutes:02d}:{sec:02d}"
     
 def gui_main():
     app = TimeTrackerApp()
