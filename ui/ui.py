@@ -69,7 +69,7 @@ class TimeTrackerApp(tk.Tk):
         frame = self.frames[name]
         frame.pack(fill="both", expand=True)
 
-        if name == "history":
+        if (name == "history") or (name == "overview"):
             frame.refresh()
 
 
@@ -198,6 +198,32 @@ class HistoryFrame(ttk.Frame):
             command=lambda: app.show_frame("log"), style="App.TButton"
         ).pack()
 
+        self.tree.bind("<Button-2>", self.on_right_click)   # macOS
+        self.tree.bind("<Button-3>", self.on_right_click)   # Windows / Linux
+
+
+    def on_right_click(self, event):
+        item_id = self.tree.identify_row(event.y)
+        if not item_id:
+            return
+
+        entry_id = int(item_id)
+
+        answer = messagebox.askyesno(
+            "Delete entry",
+            "Delete selected time entry?"
+        )
+
+        if not answer:
+            return
+
+        ok = self.app.tracker.repo.delete_entry(entry_id)
+
+        if ok:
+            self.refresh()
+        else:
+            messagebox.showerror("Error", "Failed to delete entry")
+
     def refresh(self):
         for row in self.tree.get_children():
             self.tree.delete(row)
@@ -208,6 +234,7 @@ class HistoryFrame(ttk.Frame):
             self.tree.insert(
                 "",
                 "end",
+                iid=str(entry.id),
                 values=(
                     entry.project.name,
                     entry.project.label,
@@ -362,6 +389,9 @@ class OverviewFrame(ttk.Frame):
 
         self.fill_table()
 
+    def refresh(self):
+        self.fill_table()
+        
     def fill_table(self):
         self.tree.delete(*self.tree.get_children())
 
