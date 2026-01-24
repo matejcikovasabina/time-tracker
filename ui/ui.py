@@ -101,15 +101,6 @@ class TimeTrackerApp(tk.Tk):
         self.time_var.set(format_duration(seconds))
         self.after(500, self.update_timer)
 
-    def start_timer(self):
-        if not self.timer_running:
-            self.timer_running = True
-            self.update_timer()
-
-    def stop_timer(self):
-        self.timer_running = False
-        self.time_var.set("00:00:00")
-
 class LogFrame(ttk.Frame):
     def __init__(self, app: TimeTrackerApp):
         super().__init__(app, padding=20,style="App.TFrame")
@@ -154,6 +145,7 @@ class LogFrame(ttk.Frame):
             project = Project(id=None, name=name, label=label)
             self.app.active_entry = self.app.tracker.start(project)
             self.app.timer_running = True
+            self.app.update_timer()
             messagebox.showinfo("Started", f"Started tracking '{name}'")
         except (ValueError, RuntimeError) as e:
             messagebox.showerror("Error", str(e))
